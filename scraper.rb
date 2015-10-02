@@ -9,21 +9,29 @@ require 'wikidata/fetcher'
 require 'mediawiki_api'
 
 def members
-  morph_api_url = 'https://api.morph.io/tmtmtmtm/albania-assembly-wp/data.json'
   morph_api_key = ENV["MORPH_API_KEY"]
-  result = RestClient.get morph_api_url, params: {
+  en_api_url = 'https://api.morph.io/tmtmtmtm/albania-assembly-wp/data.json'
+  al_api_url = 'https://api.morph.io/tmtmtmtm/albania-kuvendi-wikipedia/data.json'
+
+  en = JSON.parse(RestClient.get(en_api_url, params: {
     key: morph_api_key,
     query: "select DISTINCT(wikiname) AS wikiname from data"
-  }
-  JSON.parse(result, symbolize_names: true)
+  }), symbolize_names: true).map { |n| n[:wikiname] }
+
+  al = JSON.parse(RestClient.get(al_api_url, params: {
+    key: morph_api_key,
+    query: "select DISTINCT(wikiname) AS wikiname from data"
+  }), symbolize_names: true).map { |n| n[:wikiname] }
+
+  return (en+al).uniq
 end
 
-WikiData.ids_from_pages('en', members.map { |c| c[:wikiname] }).each_with_index do |p, i|
+WikiData.ids_from_pages('en', members).each_with_index do |p, i|
   data = WikiData::Fetcher.new(id: p.last).data rescue nil
   unless data
     warn "No data for #{p}"
     next
   end
+  data[:orig] = p.first
   ScraperWiki.save_sqlite([:id], data)
 end
-
