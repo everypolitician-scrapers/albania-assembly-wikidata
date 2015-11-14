@@ -35,3 +35,6 @@ WikiData.ids_from_pages('en', members).each_with_index do |p, i|
   data[:orig] = p.first
   ScraperWiki.save_sqlite([:id], data)
 end
+
+require 'rest-client'
+warn RestClient.post ENV['MORPH_REBUILDER_URL'], {} if ENV['MORPH_REBUILDER_URL']
