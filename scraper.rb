@@ -8,31 +8,34 @@ require 'scraperwiki'
 require 'wikidata/fetcher'
 require 'mediawiki_api'
 
-def members
+
+def en_members
   morph_api_key = ENV["MORPH_API_KEY"]
   en_api_url = 'https://api.morph.io/tmtmtmtm/albania-assembly-wp/data.json'
-  al_api_url = 'https://api.morph.io/tmtmtmtm/albania-kuvendi-wikipedia/data.json'
-
   en = JSON.parse(RestClient.get(en_api_url, params: {
     key: morph_api_key,
     query: "select DISTINCT(wikiname) AS wikiname from data"
   }), symbolize_names: true).map { |n| n[:wikiname] }
+  return WikiData.ids_from_pages('en', en)
+end
 
+def al_members
+  morph_api_key = ENV["MORPH_API_KEY"]
+  al_api_url = 'https://api.morph.io/tmtmtmtm/albania-kuvendi-wikipedia/data.json'
   al = JSON.parse(RestClient.get(al_api_url, params: {
     key: morph_api_key,
     query: "select DISTINCT(wikiname) AS wikiname from data"
   }), symbolize_names: true).map { |n| n[:wikiname] }
-
-  return (en+al).uniq
+  return WikiData.ids_from_pages('sq', al)
 end
 
-WikiData.ids_from_pages('en', members).each_with_index do |p, i|
-  data = WikiData::Fetcher.new(id: p.last).data rescue nil
+(en_members.values + al_members.values).uniq.each do |wid|
+  data = WikiData::Fetcher.new(id: wid).data('en', 'sq') rescue nil
   unless data
-    warn "No data for #{p}"
+    warn "No data for #{wid}"
     next
   end
-  data[:orig] = p.first
+  # TODO check if there's been a redirect
   ScraperWiki.save_sqlite([:id], data)
 end
 
