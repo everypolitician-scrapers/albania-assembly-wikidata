@@ -42,7 +42,6 @@ module EveryPolitician
           next
         end
         data[:original_wikiname] = name
-        warn data
         ScraperWiki.save_sqlite([:id], data)
       end
 
@@ -62,10 +61,11 @@ end
 
 names_en = EveryPolitician::Wikidata.morph_wikinames(source: 'tmtmtmtm/albania-kuvendi-wikipedia', column: 'wikiname__en')
 names_sq = EveryPolitician::Wikidata.morph_wikinames(source: 'tmtmtmtm/albania-kuvendi-wikipedia', column: 'wikiname__sq')
+
 EveryPolitician::Wikidata.scrape_wikidata(names: { 
   en: names_en,
   sq: names_sq,
 })
 
-require 'rest-client'
-warn RestClient.post ENV['MORPH_REBUILDER_URL'], {} if ENV['MORPH_REBUILDER_URL']
+warn EveryPolitician::Wikidata.notify_rebuilder
+
